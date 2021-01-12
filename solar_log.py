@@ -2,17 +2,18 @@ from datetime import datetime, timedelta
 import urllib.request, json, time
 from pathlib import Path
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from bokeh.plotting import figure
-from bokeh.resources import CDN
-from bokeh.embed import file_html
+# from bokeh.plotting import figure
+# from bokeh.resources import CDN
+# from bokeh.embed import file_html
 
 envoy = "http://10.0.0.35/production.json"  # IP of Enovy s energy meter
-delay = 2  ## Seconds, delay between measurements
+mega = "http://10.0.0.123"
+delay = 60  ## Seconds, delay between measurements
 timer = 0
 first_run = True
 
@@ -20,9 +21,8 @@ print("Program Running...")
 
 while True:
     ## Getting data off Envoy S
-    envoy_str = (
-        urllib.request.urlopen(envoy).read().decode()
-    )  # get html object, read it and decode it from byte to str
+    # get html object, read it and decode it from byte to str
+    envoy_str = (urllib.request.urlopen(envoy).read().decode())
     envoy_jsn = json.loads(envoy_str)
     # print(json.dumps(jstruct, sort_keys=True, indent=4)) #Pretty Print the structure
     cons_wnow = envoy_jsn["consumption"][0]["wNow"]
@@ -30,54 +30,61 @@ while True:
     enet_wnow = envoy_jsn["consumption"][1]["wNow"]  # Net power
     cnet_wnow = cons_wnow - prod_wnow
 
+    ## Data from Mega
+    mega_str = str((urllib.request.urlopen(mega).read().decode()).split('>')[2])[2:-5]
+    
     ## Print to Text File
     name_date = time.strftime("%d_%m_%Y")
     yname_date = datetime.strftime(datetime.now() - timedelta(1), "%d_%m_%Y")
-    log_path = Path(f"Logs\solar_log_{name_date}.txt")
-    ylog_path = Path(f"Logs\solar_log_{yname_date}.txt")
-    if log_path.exists() == False:  # Make a new file for a new date
+    log_path = Path(f"logs/log_{name_date}.txt")
+    # ylog_path = Path(f"Logs\solar_log_{yname_date}.txt")
+    if not log_path.exists():  # Make a new file for a new date
         newfile = open(log_path, "w")
-        newfile.write("Consumption, Production, Net, H:M:S\n")  # Header
+        newfile.write("Consumption, Production, Net, MEGA, H:M:S\n")  # Header
         newfile.close()
         print(f"Writing to new file: {log_path}")
-    text_num = f"{cons_wnow}, {prod_wnow}, {enet_wnow}"
+    text_num = f"{cons_wnow}, {prod_wnow}, {enet_wnow}, {mega_str}"
     txt_file = open(log_path, "a")
     txt_file.write(f'{text_num}, {time.strftime(" %H:%M:%S")}\n')
     txt_file.close()
 
-    data = np.genfromtxt(
-        log_path,
-        delimiter=",",
-        skip_header=1,
-        names=["Consumption", "Production", "Net"],
-        usecols=(0, 1, 2),
-    )
-    ydata = np.genfromtxt(
-        ylog_path,
-        delimiter=",",
-        skip_header=1,
-        names=["Consumption", "Production", "Net"],
-        usecols=(0, 1, 2),
-    )
-    timestamp = np.loadtxt(log_path, dtype="U", delimiter=",", skiprows=1, usecols=(3))
-    times = [datetime.strptime(t, " %H:%M:%S") for t in timestamp]
-    ytimestamp = np.loadtxt(
-        ylog_path, dtype="U", delimiter=",", skiprows=1, usecols=(3)
-    )
-    ytimes = [datetime.strptime(t, " %H:%M:%S") for t in ytimestamp]
-    x = mpl.dates.date2num(times)
-    yx = mpl.dates.date2num(ytimes)
-    tfmt = mpl.dates.DateFormatter(" %H:%M:%S")
+    print(text_num)
 
-    plot = figure()
-    plot.scatter(x, -data["Net"])
+    time.sleep(delay)
 
-    html = file_html(plot, CDN, "my plot")
-    html_list = html.split("\n")
-    html_list.insert(10, '<meta http-equiv="refresh" content="10" >\n')
+    # data = np.genfromtxt(
+    #     log_path,
+    #     delimiter=",",
+    #     skip_header=1,
+    #     names=["Consumption", "Production", "Net"],
+    #     usecols=(0, 1, 2),
+    # )
+    # ydata = np.genfromtxt(
+    #     ylog_path,
+    #     delimiter=",",
+    #     skip_header=1,
+    #     names=["Consumption", "Production", "Net"],
+    #     usecols=(0, 1, 2),
+    # )
+    # timestamp = np.loadtxt(log_path, dtype="U", delimiter=",", skiprows=1, usecols=(3))
+    # times = [datetime.strptime(t, " %H:%M:%S") for t in timestamp]
+    # ytimestamp = np.loadtxt(
+    #     ylog_path, dtype="U", delimiter=",", skiprows=1, usecols=(3)
+    # )
+    # ytimes = [datetime.strptime(t, " %H:%M:%S") for t in ytimestamp]
+    # x = mpl.dates.date2num(times)
+    # yx = mpl.dates.date2num(ytimes)
+    # tfmt = mpl.dates.DateFormatter(" %H:%M:%S")
 
-    html_new = "".join(html_list)
+    # # plot = figure()
+    # plot.scatter(x, -data["Net"])
 
-    with open("derp.html", "w") as file1:
-        file1.write(html_new)
-        file1.close()
+    # html = file_html(plot, CDN, "my plot")
+    # html_list = html.split("\n")
+    # html_list.insert(10, '<meta http-equiv="refresh" content="10" >\n')
+
+    # html_new = "".join(html_list)
+
+    # with open("derp.html", "w") as file1:
+    #     file1.write(html_new)
+    #     file1.close()
