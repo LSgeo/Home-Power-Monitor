@@ -32,7 +32,10 @@ while True:
 
     ## Data from Mega
     mega_str = str((urllib.request.urlopen(mega).read().decode()).split('>')[2])[2:-5]
-    
+    mega_list=mega_str.split(" ")
+    temp=mega_list[1]
+    humidity=mega_list[4]
+    tanklevel=mega_list[10]
     ## Print to Text File
     name_date = time.strftime("%d_%m_%Y")
     yname_date = datetime.strftime(datetime.now() - timedelta(1), "%d_%m_%Y")
@@ -40,15 +43,13 @@ while True:
     # ylog_path = Path(f"Logs\solar_log_{yname_date}.txt")
     if not log_path.exists():  # Make a new file for a new date
         newfile = open(log_path, "w")
-        newfile.write("Consumption, Production, Net, MEGA, H:M:S\n")  # Header
+        newfile.write("Consumption, Production, NetPower, Temp, Humidity, Tank Level, H:M:S\n")  # Header
         newfile.close()
         print(f"Writing to new file: {log_path}")
-    text_num = f"{cons_wnow}, {prod_wnow}, {enet_wnow}, {mega_str}"
+    text_num = f"{cons_wnow}, {prod_wnow}, {enet_wnow}, {temp}, {humidity}, {tanklevel}, {time.strftime('%H:%M:%S')}" 
     txt_file = open(log_path, "a")
-    txt_file.write(f'{text_num}, {time.strftime(" %H:%M:%S")}\n')
+    txt_file.write(f'{text_num}\n')
     txt_file.close()
-
-    print(text_num)
 
     time.sleep(delay)
 
