@@ -89,7 +89,7 @@ void loop() {
           client.print(h);
           client.print(" %. Tank Level: ");
           client.print(TankLevelRaw);
-          client.print(" ~~~ ");
+          client.print(" ~x~ ");
           client.print(TankLevel);
           client.print(" %.");
           client.println("<br />");
