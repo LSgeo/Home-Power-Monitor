@@ -1,26 +1,23 @@
 import time
 import urllib.request, json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-
 from bokeh.embed import file_html
-from bokeh.io import output_notebook
 from bokeh.models import Range1d, DatetimeTickFormatter
 from bokeh.plotting import figure, show
-from bokeh.resources import CDN
 from bokeh.palettes import Category10
+from bokeh.resources import CDN
 
-output_notebook()
+# from bokeh.io import output_notebook
+# output_notebook()
 
 server = "http://10.0.0.101/cm?cmnd=Status%208"  
 desk   = "http://10.0.0.102/cm?cmnd=Status%208"
 delay = 60  ## Seconds, delay between measurements
 timer = 0
 first_run = True
-
-print("Program Running...")
 
 def get_data(addr, field):
     """Get the contents of field from address"""
@@ -52,7 +49,8 @@ def log_data(log_dir="logs"):
         f"{get_data(server, 'Today')},"
         f"{get_data(desk, 'Power')},"
         f"{get_data(desk, 'Today')},"
-        f"{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"        "\n" 
+        f"{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"
+        "\n" 
         )
 
     txt_file = open(log_path, "a")
@@ -75,49 +73,59 @@ def plot_log(log_path, html_path="plot.html"):
         "Desk": -data["Consumption_desk (W)"],
     }
 
-    plot = figure(x_axis_type="datetime")
-    plot.height = 480 # Rpi Screen is 800*480
-    plot.width = 720  # 1440 minutes in day
+    # Rpi Screen is 800*480, but there is some padding
+    plot = figure(x_axis_type="datetime", width=790, height=465)
+    plot.background_fill_color = "black"
+    plot.background_fill_alpha = 1
+    plot.border_fill_color = "black"
+    plot.border_fill_alpha = 1
     
     plot.vbar_stack(
         sensors,
         x="timestamps",
         source=data_dict,
+        width=timedelta(minutes=1),
         legend_label=sensors,
         color=Category10[3][:2],
         )
 
-    plot.y_range = Range1d(-500, 0) # 500 W display limit
+    # plot.y_range = Range1d(-300, 0) # 300 W display limit
     # plot.x_range = times
     plot.xaxis.formatter=DatetimeTickFormatter(
-        hours=["%d %B %Y"],
-        days=["%d %B %Y"],
-        months=["%d %B %Y"]
+        hours=["%m-%d %H:%M"],
+        days=["%m-%d %H:%M"],
+        months=["%m-%d %H:%M"]
     )
 
     plot.xaxis.axis_label = "Time"
+    plot.xaxis.axis_label_text_color = "#333333"
+    plot.xaxis.major_label_text_color = "#333333"
     plot.yaxis.axis_label = "Watts"
+    plot.yaxis.axis_label_text_color = "#000000"
+    plot.yaxis.major_label_text_color = "#000000"
 
     plot.legend.location = "bottom_right"
     plot.legend.orientation = "horizontal"
 
-    show(plot)
+    # show(plot)
 
     html = file_html(plot, CDN, "Power Consumption")
-    html_list = html.split("\n")
-    html_list.insert(10, '<meta http-equiv="refresh" content="10" >\n')
-
+    html_list = html.split("\n") # Add an auto-refresh
+    html_list.insert(10, '<meta http-equiv="refresh" content="6" >\n')
     html_new = "".join(html_list)
 
     with open(html_path, "w") as f:
         f.write(html_new)
         f.close()
 
-    return html_path
+    # return html_path
 
+def main():
+    while True: 
+        log_path = log_data()
+        plot_log(log_path)
 
-while True: 
-    log_path = log_data()
-    plot_log(log_path)
+        time.sleep(delay)
 
-    time.sleep(delay)
+if __name__ == "__main__":
+    main()
