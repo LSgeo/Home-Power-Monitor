@@ -74,7 +74,7 @@ def plot_log(log_path, html_path="plot.html"):
     }
 
     # Rpi Screen is 800*480, but there is some padding
-    plot = figure(x_axis_type="datetime", width=790, height=465)
+    plot = figure(x_axis_type="datetime", width=790, height=460)
     plot.background_fill_color = "black"
     plot.background_fill_alpha = 1
     plot.border_fill_color = "black"
@@ -98,20 +98,20 @@ def plot_log(log_path, html_path="plot.html"):
     )
 
     plot.xaxis.axis_label = "Time"
-    plot.xaxis.axis_label_text_color = "#333333"
-    plot.xaxis.major_label_text_color = "#333333"
+    plot.xaxis.axis_label_text_color = "#BBBBBB"
+    plot.xaxis.major_label_text_color = "#BBBBBB"
     plot.yaxis.axis_label = "Watts"
-    plot.yaxis.axis_label_text_color = "#000000"
-    plot.yaxis.major_label_text_color = "#000000"
+    plot.yaxis.axis_label_text_color = "#BBBBBB"
+    plot.yaxis.major_label_text_color = "#BBBBBB"
 
-    plot.legend.location = "bottom_right"
+    plot.legend.location = "bottom_left"
     plot.legend.orientation = "horizontal"
 
     # show(plot)
 
     html = file_html(plot, CDN, "Power Consumption")
     html_list = html.split("\n") # Add an auto-refresh
-    html_list.insert(10, '<meta http-equiv="refresh" content="6" >\n')
+    html_list.insert(10, '<meta http-equiv="refresh" content="61" >\n')
     html_new = "".join(html_list)
 
     with open(html_path, "w") as f:
