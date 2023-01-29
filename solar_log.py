@@ -1,20 +1,24 @@
+import json
 import time
-import urllib.request, json
+import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pandas as pd
 from bokeh.embed import file_html
-from bokeh.models import Range1d, DatetimeTickFormatter
+from bokeh.models import DatetimeTickFormatter, LinearAxis, Range1d #, RangeTool 
 from bokeh.plotting import figure, show
 from bokeh.palettes import Category10
 from bokeh.resources import CDN
 
-# from bokeh.io import output_notebook
-# output_notebook()
+#from bokeh.io import curdoc #, output_notebook
+#curdoc().theme = "dark_minimal"
+#output_notebook()
 
-server = "http://10.0.0.101/cm?cmnd=Status%208"  
-desk   = "http://10.0.0.102/cm?cmnd=Status%208"
+
+desk   = "http://10.0.0.101/cm?cmnd=Status%208"
+server = "http://10.0.0.102/cm?cmnd=Status%208"  
 delay = 60  ## Seconds, delay between measurements
 timer = 0
 first_run = True
@@ -28,7 +32,7 @@ def get_data(addr, field):
 
 def log_data(log_dir="logs"):
     """Log data to log_dir, making new file each day"""
-    name_date = datetime.now().strftime("%d_%m_%Y")
+    name_date = "continuous" # datetime.now().strftime("%d_%m_%Y")
     log_path = Path(log_dir) / f"log_{name_date}.txt"
 
     if not log_path.exists():  # Make a new file for a new date
@@ -46,9 +50,9 @@ def log_data(log_dir="logs"):
 
     text_num = (
         f"{get_data(server, 'Power')},"
-        f"{get_data(server, 'Today')},"
+        f"{get_data(server, 'Total')},"
         f"{get_data(desk, 'Power')},"
-        f"{get_data(desk, 'Today')},"
+        f"{get_data(desk, 'Total')},"
         f"{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"
         "\n" 
         )
@@ -71,7 +75,8 @@ def plot_log(log_path, html_path="plot.html"):
         "timestamps": data["Timestamp (ISO)"],
         "Server": -data["Consumption_server (W)"],
         "Desk": -data["Consumption_desk (W)"],
-    }
+	"Today": (0.322957 * (-data["Consumption_desk_day (kWh)"] - data["Consumption_server_day (kWh)"])), # synergy $/kWh
+        }
 
     # Rpi Screen is 800*480, but there is some padding
     plot = figure(x_axis_type="datetime", width=790, height=460)
@@ -80,27 +85,40 @@ def plot_log(log_path, html_path="plot.html"):
     plot.border_fill_color = "black"
     plot.border_fill_alpha = 1
     
+    plot.y_range = Range1d(-1000, 0) # 1 kW display limit    
     plot.vbar_stack(
         sensors,
-        x="timestamps",
         source=data_dict,
-        width=timedelta(minutes=1),
+        x="timestamps",
+       width=timedelta(seconds=50),
         legend_label=sensors,
         color=Category10[3][:2],
         )
+    plot.yaxis.axis_label = "Watts"
 
-    # plot.y_range = Range1d(-300, 0) # 300 W display limit
+    plot.extra_y_ranges["cumulative"] = Range1d(start=-5, end=0)
+    plot.add_layout(
+            LinearAxis(y_range_name="cumulative", axis_label="Cumulative $"),
+            "right"
+            )
+    plot.line(
+        x=data_dict["timestamps"],
+        y=data_dict["Today"],
+        y_range_name="cumulative",
+        legend_label="Cumulative",
+        line_width=2.5,
+        color="#2CA02C",
+        )
+
     # plot.x_range = times
     plot.xaxis.formatter=DatetimeTickFormatter(
         hours=["%m-%d %H:%M"],
         days=["%m-%d %H:%M"],
         months=["%m-%d %H:%M"]
     )
-
     plot.xaxis.axis_label = "Time"
     plot.xaxis.axis_label_text_color = "#BBBBBB"
     plot.xaxis.major_label_text_color = "#BBBBBB"
-    plot.yaxis.axis_label = "Watts"
     plot.yaxis.axis_label_text_color = "#BBBBBB"
     plot.yaxis.major_label_text_color = "#BBBBBB"
 
@@ -121,11 +139,13 @@ def plot_log(log_path, html_path="plot.html"):
     # return html_path
 
 def main():
-    while True: 
-        log_path = log_data()
-        plot_log(log_path)
-
-        time.sleep(delay)
+    while True:
+        try:
+            log_path = log_data()
+            plot_log(log_path)
+            time.sleep(delay)
+        except HTTPError:
+            time.sleep(300) # 5 minute time out to try again
 
 if __name__ == "__main__":
     main()
