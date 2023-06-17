@@ -1,18 +1,17 @@
 #!/home/luke/Home-Power-Monitor/home/bin/python3
 
+import asyncio
 import json
-import os
 import time
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
-from subprocess import Popen, PIPE
 from urllib.error import HTTPError, URLError
 
 import pandas as pd
 from bokeh.embed import file_html
 from bokeh.models import DatetimeTickFormatter, LinearAxis, Range1d
-from bokeh.plotting import figure, show
+from bokeh.plotting import figure
 from bokeh.palettes import Category10
 from bokeh.resources import CDN
 
@@ -90,7 +89,7 @@ def log_data(log_dir: str = "logs", kasa_dev=None) -> Path:
     return log_path
 
 
-def plot_log(log_path: Path, html_path:str = "plot.html"):
+def plot_log(log_path: Path, html_path: str = "plot.html"):
     """Generate a html file containing an autorefreshing plot
     of the data in log_path csv.
     """
@@ -106,7 +105,7 @@ def plot_log(log_path: Path, html_path:str = "plot.html"):
         "Today": (
             price_per_kwh
             * (
-                - data["Consumption_desk_total (kWh)"]
+                -data["Consumption_desk_total (kWh)"]
                 - data["Consumption_server_total (kWh)"]
                 - data["Consumption_kasa_total (kWh)"]
             )
@@ -149,12 +148,12 @@ def plot_log(log_path: Path, html_path:str = "plot.html"):
         y_range_name="cumulative",
         legend_label="Cumulative",
         line_width=2.5,
-        color="#DDBBBB", #"#2CA02C",
+        color="#DDBBBB",  # "#2CA02C",
     )
 
     # plot.x_range = times
     plot.xaxis.formatter = DatetimeTickFormatter(
-        hours=["%m-%d %H:%M"], days=["%m-%d %H:%M"], months=["%m-%d %H:%M"]
+        hours="%m-%d %H:%M", days="%m-%d %H:%M", months="%m-%d %H:%M"
     )
     plot.xaxis.axis_label = "Time"
     plot.xaxis.axis_label_text_color = "#BBBBBB"
