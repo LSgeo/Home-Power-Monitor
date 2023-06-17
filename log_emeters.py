@@ -1,11 +1,12 @@
 #!/home/luke/Home-Power-Monitor/home/bin/python3
 
 import json
-from subprocess import Popen, PIPE
+import os
 import time
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
+from subprocess import Popen, PIPE
 from urllib.error import HTTPError, URLError
 
 import pandas as pd
@@ -41,10 +42,10 @@ def get_kasa_data(addr: str, field: str) -> str:
     """Query Kasa device using some kasa tool from github"""
     cmd = f"(/home/luke/.local/bin/kasa --host {addr} --type plug emeter)"
     proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    o, e = proc.communicate(timeout=10)
+    o, e = proc.communicate(timeout=30)
 
     output = o.decode("ascii")
-    print(e.decode("ascii"))
+    # print(e.decode("ascii"))
 
     p = output.split()[10]
     t = output.split()[14]
@@ -186,7 +187,10 @@ def main():
             plot_log(log_path)
             time.sleep(delay)
         except (HTTPError, ConnectionResetError, URLError):
-            time.sleep(300)  # 5 minute time out to try again
+            time.sleep(60)  # 5 minute time out to try again
+            # os.system('sudo systemctl reboot -i')
+        else:
+            time.sleep(30)
 
 
 if __name__ == "__main__":
