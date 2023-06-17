@@ -26,7 +26,7 @@ server = "http://10.0.0.102/cm?cmnd=Status%208"
 kasa_addr = "10.0.0.59"
 
 price_per_kwh = 0.322957  # 2023 Synergy AUD/kWh
-delay = 61  ## Seconds, delay between measurements
+delay = 60  # Seconds, delay between measurements
 timer = 0
 first_run = True
 
@@ -168,7 +168,7 @@ def plot_log(log_path: Path, html_path: str = "plot.html"):
 
     html = file_html(plot, CDN, "Power Consumption")
     html_list = html.split("\n")  # Add an auto-refresh
-    html_list.insert(10, '<meta http-equiv="refresh" content="61" >\n')
+    html_list.insert(10, '<meta http-equiv="refresh" content="65" >\n')
     html_new = "".join(html_list)
 
     with open(html_path, "w") as f:
