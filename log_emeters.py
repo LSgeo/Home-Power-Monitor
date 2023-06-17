@@ -190,8 +190,6 @@ async def main():
         except (HTTPError, ConnectionResetError, URLError):
             time.sleep(300)  # 5 minute time out to try again
 
-        time.sleep(delay)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
