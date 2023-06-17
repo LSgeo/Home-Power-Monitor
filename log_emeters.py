@@ -16,13 +16,15 @@ from bokeh.plotting import figure, show
 from bokeh.palettes import Category10
 from bokeh.resources import CDN
 
+from kasa import SmartPlug
+
 # from bokeh.io import output_notebook
 # output_notebook()
 
 
 desk = "http://10.0.0.101/cm?cmnd=Status%208"
 server = "http://10.0.0.102/cm?cmnd=Status%208"
-kasa = "10.0.0.59"
+kasa_addr = "10.0.0.59"
 
 price_per_kwh = 0.322957  # 2023 Synergy AUD/kWh
 delay = 61  ## Seconds, delay between measurements
@@ -38,22 +40,19 @@ def get_data(addr: str, field: str) -> str:
     return str(jsn["StatusSNS"]["ENERGY"][field])
 
 
-def get_kasa_data(addr: str, field: str) -> str:
-    """Query Kasa device using some kasa tool from github"""
-    cmd = f"(/home/luke/.local/bin/kasa --host {addr} --type plug emeter)"
-    proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    o, e = proc.communicate(timeout=30)
+def get_kasa_data(dev: SmartPlug, field: str) -> str:
+    """Query Kasa device using python-kasa
+    https://github.com/python-kasa/python-kasa
+    """
+    if not dev.has_emeter:
+        raise ValueError(f"Device {dev} does not support energy monitoring")
 
-    output = o.decode("ascii")
-    # print(e.decode("ascii"))
+    e = dev.emeter_realtime
 
-    p = output.split()[10]
-    t = output.split()[14]
-
-    return dict(Power=p, Total=t)[field]
+    return dict(Power=e.power, Total=e.total)[field]
 
 
-def log_data(log_dir: str = "logs") -> Path:
+def log_data(log_dir: str = "logs", kasa_dev=None) -> Path:
     """Log data to log_dir, making new file each month"""
     name_date = "continuous_kasa"  # datetime.now().strftime("%m_%Y")
     log_path = Path(log_dir) / f"log_{name_date}.txt"
@@ -78,8 +77,8 @@ def log_data(log_dir: str = "logs") -> Path:
         f"{get_data(server, 'Total')},"
         f"{get_data(desk, 'Power')},"
         f"{get_data(desk, 'Total')},"
-        f"{get_kasa_data(kasa, 'Power')},"
-        f"{get_kasa_data(kasa, 'Total')},"
+        f"{get_kasa_data(kasa_dev, 'Power')},"
+        f"{get_kasa_data(kasa_dev, 'Total')},"
         f"{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"
         "\n"
     )
@@ -180,18 +179,20 @@ def plot_log(log_path: Path, html_path:str = "plot.html"):
     # return html_path
 
 
-def main():
+async def main():
+    dev = SmartPlug(kasa_addr)
+
     while True:
         try:
-            log_path = log_data()
+            await dev.update()
+            log_path = log_data(kasa_dev=dev)
             plot_log(log_path)
             time.sleep(delay)
         except (HTTPError, ConnectionResetError, URLError):
-            time.sleep(60)  # 5 minute time out to try again
-            # os.system('sudo systemctl reboot -i')
-        else:
-            time.sleep(30)
+            time.sleep(300)  # 5 minute time out to try again
+
+        time.sleep(delay)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
