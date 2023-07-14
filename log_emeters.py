@@ -185,6 +185,7 @@ def plot_log(log_path: Path, html_path: str = "plot.html"):
 async def main():
     try:
         dev = SmartPlug(kasa_addr)
+        await dev.update()
     except kasa.exceptions.SmartDeviceException:
         dev = None
 
