@@ -15,6 +15,7 @@ from bokeh.plotting import figure
 from bokeh.palettes import Category10
 from bokeh.resources import CDN
 
+import kasa
 from kasa import SmartPlug
 
 # from bokeh.io import output_notebook
@@ -43,6 +44,9 @@ def get_kasa_data(dev: SmartPlug, field: str) -> str:
     """Query Kasa device using python-kasa
     https://github.com/python-kasa/python-kasa
     """
+    if dev is None:
+        return "0"
+
     if not dev.has_emeter:
         raise ValueError(f"Device {dev} does not support energy monitoring")
 
@@ -179,11 +183,15 @@ def plot_log(log_path: Path, html_path: str = "plot.html"):
 
 
 async def main():
-    dev = SmartPlug(kasa_addr)
+    try:
+        dev = SmartPlug(kasa_addr)
+    except kasa.exceptions.SmartDeviceException:
+        dev = None
 
     while True:
         try:
-            await dev.update()
+            if dev is not None:
+                await dev.update()
             log_path = log_data(kasa_dev=dev)
             plot_log(log_path)
             time.sleep(delay)
