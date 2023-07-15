@@ -9,11 +9,12 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 
 import pandas as pd
-from bokeh.embed import file_html
-from bokeh.models import DatetimeTickFormatter, LinearAxis, Range1d
-from bokeh.plotting import figure
-from bokeh.palettes import Category10
-from bokeh.resources import CDN
+
+# from bokeh.embed import file_html
+# from bokeh.models import DatetimeTickFormatter, LinearAxis, Range1d
+# from bokeh.plotting import figure, curdoc
+# from bokeh.palettes import Category10
+# from bokeh.resources import CDN
 
 import kasa
 from kasa import SmartPlug
@@ -115,7 +116,7 @@ def plot_log(log_path: Path, html_path: str = "plot.html"):
             )
         ),
     }
-
+    doc = curdoc()
     # Rpi Screen is 800*480, but there is some padding
     plot = figure(
         x_axis_type="datetime",
@@ -168,16 +169,17 @@ def plot_log(log_path: Path, html_path: str = "plot.html"):
     plot.legend.location = "bottom_left"
     plot.legend.orientation = "horizontal"
 
+    doc.add_root(plot)
+
     # show(plot)
+    # html = file_html(plot, CDN, "Power Consumption")
+    # html_list = html.split("\n")  # Add an auto-refresh
+    # html_list.insert(10, '<meta http-equiv="refresh" content="65" >\n')
+    # html_new = "".join(html_list)
 
-    html = file_html(plot, CDN, "Power Consumption")
-    html_list = html.split("\n")  # Add an auto-refresh
-    html_list.insert(10, '<meta http-equiv="refresh" content="65" >\n')
-    html_new = "".join(html_list)
-
-    with open(html_path, "w") as f:
-        f.write(html_new)
-        f.close()
+    # with open(html_path, "w") as f:
+    #     f.write(html_new)
+    #     f.close()
 
     # return html_path
 
@@ -194,7 +196,7 @@ async def main():
             if dev is not None:
                 await dev.update()
             log_path = log_data(kasa_dev=dev)
-            plot_log(log_path)
+            # plot_log(log_path)
             time.sleep(delay)
         except (HTTPError, ConnectionResetError, URLError):
             time.sleep(300)  # 5 minute time out to try again
