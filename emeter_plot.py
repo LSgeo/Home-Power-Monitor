@@ -11,7 +11,7 @@ from bokeh.palettes import Category10
 PRICE_PER_KWH = 0.322957
 
 
-if 1:  # __name__ == "__main__":
+if 1: # __name__ == "__main__":
 
     def make_document(doc: Document, log_path: str = "logs/log.txt"):
         """Generate a html file containing an autorefreshing plot
@@ -57,7 +57,7 @@ if 1:  # __name__ == "__main__":
 
             source.stream(new_data)
 
-        doc.add_periodic_callback(update, 3000)  # 1 minute 1 sec
+        doc.add_periodic_callback(update, 15 * 60 * 1000)  # 15 min
 
         plot = figure(
             x_axis_type="datetime",
@@ -114,3 +114,4 @@ if 1:  # __name__ == "__main__":
 
     doc = curdoc()
     doc = make_document(doc)
+
